@@ -1,0 +1,11 @@
+env
+v1.0.0
+src/__pycache__
+src/address.txt
+src/to.txt
+src/names.txt
+src/test.py
+src/example-draft-data.json
+src/address.txt
+src/error.log
+src/dist

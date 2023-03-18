@@ -1,0 +1,9 @@
+{
+  "detail": {
+    "currency_code": "USD"
+  },
+  "items": [],
+  "configuration": {
+    "allow_tip": true
+  }
+}

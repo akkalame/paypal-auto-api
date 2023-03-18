@@ -1,0 +1,71 @@
+QFrame {
+                background-color: #f5f5f5;
+                border: 1px solid #e0e0e0;
+                border-radius: 5px;
+                padding: 5px;
+            }
+
+            QLabel {
+                font-size: 12px;
+                color: #444444;
+            }
+
+            QLineEdit {
+                font-size: 12px;
+                color: #222222;
+                border: 1px solid #e0e0e0;
+                border-radius: 3px;
+                padding: 2px;
+            }
+
+            QTextEdit {
+                font-size: 12px;
+                color: #222222;
+                border: 1px solid #e0e0e0;
+                border-radius: 3px;
+                padding: 2px;
+                background-color:#fff;
+            }
+
+            QGroupBox {
+                font-size: 12px;
+                color: #444444;
+            }
+
+            QPushButton {
+                font-size: 12px;
+                color: #ffffff;
+                background-color: #5c7cfa;
+                border: 1px solid #5c7cfa;
+                border-radius: 3px;
+                padding: 5px 10px;
+            }
+
+            QPushButton:hover {
+                background-color: #4c6bcf;
+                border-color: #4c6bcf;
+            }
+
+            QListWidget {
+                font-size: 12px;
+                color: #222222;
+                border: 1px solid #e0e0e0;
+                border-radius: 3px;
+                padding: 2px;
+            }
+            .QListWidget-item-azul:selected {
+                background-color: #2196F3;
+                color: white;
+            }
+
+
+            .QListWidget-item-rojo:selected {
+                background-color: #FF5722;
+                color: white;
+            }
+
+
+            .QListWidget-item-verde:selected {
+                background-color: #4CAF50;
+                color: white;
+            }
