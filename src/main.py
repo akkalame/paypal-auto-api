@@ -40,8 +40,8 @@ class Invoices:
 			'send_to_invoicer': False,
 			'send_to_recipient': True
 		}
-		uri = self.scopes['invoices']+'/'+id_invoice+'/send'
-		return json.loads(requests.request("POST", uri, headers=headers, json=json_data).text)
+		endpoint = self.scopes['invoices']+'/'+id_invoice+'/send'
+		return json.loads(requests.request("POST", endpoint, headers=headers, json=json_data).text)
 
 	def create_draft_invoice(self, json_data):
 		headers = {
@@ -55,7 +55,6 @@ class Invoices:
 		#json_data['detail']['invoice_number'] = invoice_number
 		return json.loads(requests.request("POST", self.scopes['invoices'], headers=headers, json=json_data).text)
 		
-
 	def gen_invoice_number(self):
 		headers = {
 	  		'Authorization': self.bearer,
@@ -63,6 +62,27 @@ class Invoices:
 		}
 		return json.loads(requests.request("POST", self.scopes['gen-invoice-number'],
 			 headers=headers).text)['invoice_number']
+
+	def list_invoices(self, page=1, page_size=100):
+		headers = {
+	  		'Authorization': self.bearer,
+	  		'Content-Type': 'application/json'
+		}
+		endpoint = self.scopes['invoices']+'?page='+str(page)+'&page_size='+str(page_size)
+
+		return json.loads(requests.request("GET", endpoint, headers=headers).text)
+
+	def send_reminder(self, id_invoice, subject, note):
+		headers = {
+	  		'Authorization': self.bearer,
+	  		'Content-Type': 'application/json'
+		}
+		json_data = {
+			'subject': subject,
+			'note': note
+		}
+		endpoint = self.scopes['invoices']+'/'+id_invoice+'/remind'
+		print(requests.request("POST", endpoint, headers=headers, json=json_data).text)
 
 	def get_bearer_token(self, client_id: str, secret: str):
 
@@ -165,24 +185,4 @@ class Invoices:
 
 		return template
 
-if __name__ == '__main__':
-	#response = getAccessToken(client_id, secret)
-	#print(response)
-
-	item = [{'name':'software','description':'un programa de facturacion','qty':'2','value':'20.00'}]
-	invoice = Invoices()
-
-	data = invoice.format_json_data('yugreaguirre@gmail.com',items=item, 
-		note='una nota', terms='terminos', invoicer='akkalame@mail.com', 
-		cc=['akk@mail.com','correo@mail.com'])
-
-	
-	draft = invoice.create_draft_invoice(data)
-	id_invoice = invoice.get_id_from_url(draft['href'])
-	print(draft)
-	print(id_invoice)
-	print(invoice.send_invoice(id_invoice))
-	"""
-	#print(invoice.gen_invoice_number())
-	"""
 

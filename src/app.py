@@ -98,6 +98,45 @@ class SendThread(QThread):
 
         print('The script is finished')
 
+class SendReminderThread(QThread):
+    finished = pyqtSignal()
+
+    def __init__(self, parent):
+        super().__init__()
+        self.mainApp = parent
+
+    def run(self):
+        self.send()
+        self.finished.emit()
+
+    def send(self):
+        print('creando invoice object')
+        self.mainApp.label_information.setText("Starting")
+        invoices = Invoices()
+
+        print('obteniendo bearer token')
+        self.mainApp.label_information.setText("Getting token")
+        invoices.get_bearer_token(self.mainApp.client_id_entry.text(), self.mainApp.secret_entry.text())
+        
+        print('getting invoices')
+        page = 1
+        self.mainApp.label_information.setText(f"Getting list of invoices, Page {page}")
+        list_invoices = invoices.list_invoices(page=page)
+        while list_invoices != {}:
+            total_invoices = len(list_invoices['items'])
+            for idx, item in enumerate(list_invoices['items']):
+                self.mainApp.label_information.setText(f"Sending reminder {idx+1}/{total_invoices}. Page {page}")
+                response = invoices.send_reminder(id_invoice=item['id'], 
+                        subject=self.mainApp.subject_reminder.text(), 
+                        note=self.mainApp.note_reminder.toPlainText())
+
+            page += 1
+            self.mainApp.label_information.setText(f"Getting list of invoices, Page {page}")
+            list_invoices = invoices.list_invoices(page=page)
+
+        self.mainApp.label_information.setText('The script "Send reminder" is finished')
+        print('The script "Send reminder" is finished')
+
 class DropableFilesQListWidget(QtWidgets.QListWidget):
     droped = pyqtSignal(list)
 
@@ -130,16 +169,30 @@ class DropableFilesQListWidget(QtWidgets.QListWidget):
 class App(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle('My App')
+        self.setWindowTitle('PayPal Auto API    v1.1.0')
         self.left_frame = QtWidgets.QFrame()
         self.right_frame = QtWidgets.QFrame()
         self.create_left_widgets()
         self.create_right_widgets()
 
+        self.label_information = QtWidgets.QLabel("")
+        self.label_information.setStyleSheet('color:#060606')
+        self.label_information.setAlignment(Qt.AlignCenter)
+
+        dev_lbl = QtWidgets.QLabel("Developer: Akkalameo.o@gmail.com")
+        dev_lbl.setStyleSheet('color:#060606; border: 0px;background-color: #f0f0f0')
+
         layout = QtWidgets.QHBoxLayout()
         layout.addWidget(self.left_frame)
         layout.addWidget(self.right_frame)
-        self.setLayout(layout)
+
+        main_layout = QtWidgets.QVBoxLayout()
+
+        main_layout.addWidget(dev_lbl)
+        main_layout.addLayout(layout)
+        main_layout.addWidget(self.label_information)
+
+        self.setLayout(main_layout)
 
         with open('estilos.css', mode='r') as f:
             estilos = f.read()
@@ -244,9 +297,20 @@ class App(QtWidgets.QWidget):
         left_layout.addWidget(self.add_button, 6,0)
         left_layout.addWidget(self.table, 6, 1)
         left_layout.addWidget(self.send_button, 7, 0, 1, 2)
+        
+        
+
         self.left_frame.setLayout(left_layout)
 
     def create_right_widgets(self):
+        # Creamos un QTabWidget y dos pestañas
+        tabs = QtWidgets.QTabWidget()
+        tab1 = QtWidgets.QWidget()
+        tab2 = QtWidgets.QWidget()
+
+        ####   tab 1
+
+        # recipients
         self.listbox = DropableFilesQListWidget()
         self.load_button = QtWidgets.QPushButton("Load recipients")
         self.load_button.clicked.connect(lambda:self.load_recipients(''))
@@ -264,14 +328,34 @@ class App(QtWidgets.QWidget):
         self.load_address_button.clicked.connect(lambda:self.load_address(''))
         self.listbox_address.droped.connect(lambda r: self.load_address(r[0]))
 
-        right_layout = QtWidgets.QVBoxLayout()
+        right_layout = QtWidgets.QVBoxLayout(tab1)
         right_layout.addWidget(self.listbox)
         right_layout.addWidget(self.load_button)
         right_layout.addWidget(self.listbox_names)
         right_layout.addWidget(self.load_names_button)
         right_layout.addWidget(self.listbox_address)
         right_layout.addWidget(self.load_address_button)
-        self.right_frame.setLayout(right_layout)
+
+        ####   tab 2
+        self.subject_reminder = QtWidgets.QLineEdit()
+        self.subject_reminder.setPlaceholderText("Subject")
+        
+        self.note_reminder = QtWidgets.QTextEdit()
+        self.note_reminder.setPlaceholderText("Note to recipients")
+
+        btn_send_reminder = QtWidgets.QPushButton("Send Reminder")
+        btn_send_reminder.clicked.connect(self.send_reminder)
+
+        reminder_layout = QtWidgets.QVBoxLayout(tab2)
+        reminder_layout.addWidget(self.subject_reminder)
+        reminder_layout.addWidget(self.note_reminder)
+        reminder_layout.addWidget(btn_send_reminder)
+
+        tabs.addTab(tab1, "Recipients Data")
+        tabs.addTab(tab2, "Reminder")
+        main_right_layout = QtWidgets.QVBoxLayout()
+        main_right_layout.addWidget(tabs)
+        self.right_frame.setLayout(main_right_layout)
 
     def add_product(self):
         row_position = self.table.rowCount()
@@ -304,6 +388,8 @@ class App(QtWidgets.QWidget):
         self.table.setCellWidget(row_position, 3, value_edit) 
 
     def start_send_thread(self):
+        if self.client_id_entry.text() == '' or self.secret_entry.text() == '':
+            return
         self.left_frame.setEnabled(False)
         self.right_frame.setEnabled(False)
         self.send_thread = SendThread(self)
@@ -378,12 +464,21 @@ class App(QtWidgets.QWidget):
         except:
             pass
     
+    def send_reminder(self):
+        if self.client_id_entry.text() == '' or self.secret_entry.text() == '':
+            return
+
+        self.left_frame.setEnabled(False)
+        self.right_frame.setEnabled(False)
+        self.send_thread = SendReminderThread(self)
+        self.send_thread.start()
+        self.send_thread.finished.connect(self.on_send_thread_finished)
+
     # eventos
     def on_send_thread_finished(self):
         self.left_frame.setEnabled(True)
         self.right_frame.setEnabled(True)
-    
-    
+
 if __name__ == '__main__':
 
     try:

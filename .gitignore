@@ -9,3 +9,5 @@ src/example-draft-data.json
 src/address.txt
 src/error.log
 src/dist
+src/config.json
+.$Paypal-app.drawio.bkp
