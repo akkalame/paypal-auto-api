@@ -3,13 +3,7 @@ import requests
 import base64
 import time
 import re
-
-# Bearer A21AALuQdDpomJi0M9yFRC093zsvZ_U54fwYBB21fRCdyNNc4wOoItjQdM_okCtW4Mb_XokZCYVja-knyd5vER4a8tT78I8SA
-
-#client_id = 'AcZ03Wisk5lZ4WLYFThhznEc8bR4c5sLf5ZduDDwTuzBF93sud35OGxe6y6xCMPu3-V8LiyY4UBTpXA6'
-#secret = 'EMVNx70mZo-gS-54tG1-oe-0ppAIL9bnHtUx5Xj12DHyqiV4SmevFxUTG9IOLlHAd12TM6mJymMEqq4k'
-
-
+import os
 
 class Invoices:
 	def __init__(self):
@@ -49,10 +43,10 @@ class Invoices:
 	  		'Content-Type': 'application/json'
 		}
 
-		#invoice_number = self.gen_invoice_number()
+		invoice_number = self.gen_invoice_number()
 		#print(invoice_number)
 
-		#json_data['detail']['invoice_number'] = invoice_number
+		json_data['detail']['invoice_number'] = invoice_number
 		return json.loads(requests.request("POST", self.scopes['invoices'], headers=headers, json=json_data).text)
 		
 	def gen_invoice_number(self):
@@ -85,8 +79,8 @@ class Invoices:
 		print(requests.request("POST", endpoint, headers=headers, json=json_data).text)
 
 	def get_bearer_token(self, client_id: str, secret: str):
-
-		if self.need_new_bearer(client_id, secret):
+		#print(self.need_new_bearer(client_id, secret))
+		if not self.need_new_bearer(client_id, secret):
 			payload='grant_type=client_credentials'
 			headers = {
 			  'Authorization': '',
@@ -95,24 +89,29 @@ class Invoices:
 			authorization = self.str2base64(client_id+':'+secret)
 			headers['Authorization'] = f'Basic {authorization}'
 			response = json.loads(requests.request("POST", self.scopes['get-token'], headers=headers, data=payload).text)
-			self.bearer = response['token_type']+' '+response['access_token']
+			
+			try:
+				self.bearer = response['token_type']+' '+response['access_token']
 
-			# save the last config bearer
-			self.config['acces_token']['last_client_id'] = client_id
-			self.config['acces_token']['last_secret'] = secret
-			self.config['acces_token']['bearer']['last_bearer_token'] = response['access_token']
-			self.config['acces_token']['bearer']['due_token'] = time.time() + response['expires_in'] - 300
+				# save the last config bearer
+				self.config['acces_token']['last_client_id'] = client_id
+				self.config['acces_token']['last_secret'] = secret
+				self.config['acces_token']['bearer']['last_bearer_token'] = response['token_type']+' '+response['access_token']
+				self.config['acces_token']['bearer']['due_token'] = time.time() + response['expires_in'] - 300
 
-			self.save_config()
+				self.save_config()
+			except Exception as e:
+				return 'Error getting bearer token'+str(e)
 		else:
-			self.bearer = config['acces_token']['bearer']['last_bearer_token']
+			self.bearer = self.config['acces_token']['bearer']['last_bearer_token']
 	# tools
 	def need_new_bearer(self, client_id, secret):
-		same_client_id = self.config['acces_token']['last_client_id'] != client_id
-		same_secret = self.config['acces_token']['last_secret'] != secret
-		invalid_token = re.match("[a-zA-Z0-9_-]+$", self.config['acces_token']['bearer']['last_bearer_token'])
-		expired_token = time.time() >= (self.config['acces_token']['bearer']['due_token'] - 3600 )
-		return same_client_id or same_secret or invalid_token or expired_token
+		same_client_id = self.config['acces_token']['last_client_id'] == client_id
+		same_secret = self.config['acces_token']['last_secret'] == secret
+		valid_token = re.match("^Bearer [a-zA-Z0-9_-]+$", self.config['acces_token']['bearer']['last_bearer_token'])
+		
+		expired_token = time.time() <= (self.config['acces_token']['bearer']['due_token'] - 1800 )
+		return same_client_id and same_secret and valid_token and expired_token
 
 	def get_id_from_url(self, url):
 		url = url.split('/')
@@ -123,7 +122,10 @@ class Invoices:
 		base64_bytes = base64.b64encode(sample_string_bytes)
 		return base64_bytes.decode("ascii")
 
-	def format_json_data(self, recipient, items, note='', terms='', invoicer=None, cc=[], website='', tax_id='', phone='', name_recipient=[], address_recipient=None, currency='USD'):
+	def format_json_data(self, recipient, items, note='', terms='', invoicer='', cc=[],
+			website='', tax_id='', phone='', name_recipient=[], business_name='',
+			address_recipient=None, currency='USD'):
+		
 		with open('data_template.json', mode='r') as f:
 			template = json.loads(f.read())
 
@@ -168,7 +170,7 @@ class Invoices:
 			template['detail']['note'] = note
 		if terms:
 			template['detail']['terms_and_conditions'] = terms
-		if invoicer != '':
+		if invoicer != '' and invoicer != None:
   			template['invoicer']["email_address"] = invoicer
 		if website != '':
   			template['invoicer']['website'] = website
@@ -178,11 +180,37 @@ class Invoices:
 				        "national_number": phone,
 				        "phone_type": "MOBILE"
 				      }]
-		if tax_id != '':
+		if business_name != '' and business_name != None:
+			template['invoicer']["business_name"] = {"business_name": business_name}
+		#template['invoicer']["business_name_validation"] = {"business_name": "akk ere"}
+
+		if tax_id != '' and tax_id != None:
   			template['invoicer']['tax_id'] = tax_id
 		if cc:
   			template["additional_recipients"] = cc
 
+		print(template, '\n'*5)
 		return template
 
 
+
+def make_config():
+	content = {"acces_token": {
+				"last_client_id": "", 
+				"last_secret": "", 
+				"bearer": {
+					"last_bearer_token": "",
+					"due_token": 0
+					}
+				}
+			}
+
+	with open('config.json', 'w') as f:
+		json.dump(content, f)
+
+
+def woke():
+	if not os.path.exists('./config.json'):
+		make_config()
+
+	

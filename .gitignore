@@ -1,5 +1,7 @@
 env
+data
 v1.0.0
+*.zip
 src/__pycache__
 src/address.txt
 src/to.txt

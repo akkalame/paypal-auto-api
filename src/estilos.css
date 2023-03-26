@@ -1,13 +1,16 @@
 QFrame {
     background-color: #f5f5f5;
-    border: 1px solid #e0e0e0;
+    
     border-radius: 5px;
-    padding: 5px;
+    padding: 1px;
 }
-
+QTableWidget{
+    border: 1px solid #e0e0e0;
+}
 QLabel {
     font-size: 12px;
     color: #444444;
+    border: none;
 }
 
 QLineEdit {
@@ -54,17 +57,3 @@ QListWidget {
     padding: 2px;
 }
 
-.QListWidget-item-azul:selected {
-    background-color: #2196F3;
-    color: white;
-}
-
-.QListWidget-item-rojo:selected {
-    background-color: #FF5722;
-    color: white;
-}
-
-.QListWidget-item-verde:selected {
-    background-color: #4CAF50;
-    color: white;
-}
