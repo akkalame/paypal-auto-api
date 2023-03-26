@@ -4,7 +4,7 @@ from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QTableWidget
 from PyQt5.QtCore import QThread, pyqtSignal, Qt
 import re
-from main import Invoices, woke
+from main import Invoices, woke, check_licence
 import os
 
 currency_codes = "USD, AUD, BRL, CAD, CNY, CZK, DKK, EUR, HKD, HUF, ILS, JPY, MYR, MXN, TWD, NZD, NOK, PHP, PLN, GBP, RUB, SGD, SEK, CHF, THB"
@@ -194,10 +194,47 @@ class DropableFilesQListWidget(QtWidgets.QListWidget):
         else:
             event.ignore()
 
+class CheckUser(QtWidgets.QDialog):
+    #enviar_status = pyqtSignal(str)
+
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Checking user")
+        
+        # Agregar widgets al diálogo
+        self.username_entry = QtWidgets.QLineEdit()
+        self.username_entry.setPlaceholderText("Username")
+        btn_check = QtWidgets.QPushButton("Check")
+        btn_check.clicked.connect(self.send_value)
+        
+        # Configurar el diseño del diálogo
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.username_entry)
+        spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        hbox = QtWidgets.QHBoxLayout()
+        hbox.addItem(spacer)
+        hbox.addWidget(btn_check)
+        layout.addLayout(hbox)
+        self.setLayout(layout)
+        
+        # Hacer que el diálogo sea modal y lo muestre
+        self.setModal(True)
+        self.exec_()
+
+    def send_value(self):
+        status = check_licence(self.username_entry.text())
+        #self.enviar_status.emit(self.username_entry.text())
+        #self.close()
+        if status:
+            self.accept()
+        else:
+            self.reject()
+
 class App(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle('PayPal Auto API    v1.2.0')
+
         self.left_frame = QtWidgets.QFrame()
         self.right_frame = QtWidgets.QFrame()
         self.create_left_widgets()
@@ -225,6 +262,7 @@ class App(QtWidgets.QWidget):
         with open('estilos.css', mode='r') as f:
             estilos = f.read()
         self.setStyleSheet(estilos)
+
 
     def create_left_widgets(self):
         #####  Invoicer group
@@ -438,6 +476,8 @@ class App(QtWidgets.QWidget):
         self.table.setCellWidget(row_position, 3, value_edit) 
 
     def start_send_thread(self):
+        if not check_licence():
+            return
         if self.client_id_entry.text() == '' or self.secret_entry.text() == '':
             return
         self.left_frame.setEnabled(False)
@@ -545,6 +585,8 @@ class App(QtWidgets.QWidget):
             pass
     
     def send_reminder(self):
+        if not check_licence():
+            return
         if self.client_id_entry.text() == '' or self.secret_entry.text() == '':
             return
 
@@ -559,8 +601,9 @@ class App(QtWidgets.QWidget):
         self.left_frame.setEnabled(True)
         self.right_frame.setEnabled(True)
 
+
 if __name__ == '__main__':
-    canwoke = woke()
+    woke()
     try:
         print('iniciando QApplication')
         app = QtWidgets.QApplication(sys.argv)
@@ -571,6 +614,6 @@ if __name__ == '__main__':
         
     except Exception as e:
         with open('error.log', 'a') as f:
-            f.write(str(e))
+            f.write(str(e)+'\n')
 
     sys.exit(app.exec_())

@@ -4,6 +4,7 @@ import base64
 import time
 import re
 import os
+from bs4 import BeautifulSoup
 
 class Invoices:
 	def __init__(self):
@@ -208,9 +209,29 @@ def make_config():
 	with open('config.json', 'w') as f:
 		json.dump(content, f)
 
+def time_now():
+	url = f'https://unixtime.org/'
+	response = requests.get(url)
+	soup = BeautifulSoup(response.content, 'html.parser')
+
+	return int(soup.find('div', class_='epoch h1').get_text())
+
+# verifica que el usuario este autorizado
+def check_licence(user='huzu'):
+	url = f'https://raw.githubusercontent.com/akkalame/paypal-auto-api/develop/licencias/{user}.txt'
+	response = requests.get(url)
+	try:
+		soup = BeautifulSoup(response.content, 'html.parser')
+		expire_time = int(soup.get_text())
+
+		return expire_time > time_now() 
+	except Exception as e:
+		with open('error.log', 'a') as f:
+			f.write(str(e)+'\n')
+		return False
 
 def woke():
 	if not os.path.exists('./config.json'):
 		make_config()
 
-	
+
