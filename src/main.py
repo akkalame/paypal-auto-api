@@ -45,7 +45,6 @@ class Invoices:
 		}
 
 		invoice_number = self.gen_invoice_number()
-		#print(invoice_number)
 
 		json_data['detail']['invoice_number'] = invoice_number
 		return json.loads(requests.request("POST", self.scopes['invoices'], headers=headers, json=json_data).text)
@@ -90,7 +89,7 @@ class Invoices:
 			authorization = self.str2base64(client_id+':'+secret)
 			headers['Authorization'] = f'Basic {authorization}'
 			response = json.loads(requests.request("POST", self.scopes['get-token'], headers=headers, data=payload).text)
-			
+			print(response, '\n')
 			try:
 				self.bearer = response['token_type']+' '+response['access_token']
 
@@ -102,6 +101,8 @@ class Invoices:
 
 				self.save_config()
 			except Exception as e:
+				with open('error.log', 'a') as f:
+					f.write(str(e)+'\n')
 				return 'Error getting bearer token'+str(e)
 		else:
 			self.bearer = self.config['acces_token']['bearer']['last_bearer_token']
@@ -190,7 +191,6 @@ class Invoices:
 		if cc:
   			template["additional_recipients"] = cc
 
-		print(template, '\n'*5)
 		return template
 
 

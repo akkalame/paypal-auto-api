@@ -9,7 +9,7 @@ import os
 
 currency_codes = "USD, AUD, BRL, CAD, CNY, CZK, DKK, EUR, HKD, HUF, ILS, JPY, MYR, MXN, TWD, NZD, NOK, PHP, PLN, GBP, RUB, SGD, SEK, CHF, THB"
 colores = {"azul":"#2196F3", "rojo":"#FF5722", "verde":"#4CAF50"}
-testing = True
+testing = False
 
 class SendThread(QThread):
     finished = pyqtSignal()
@@ -35,91 +35,90 @@ class SendThread(QThread):
         response = invoices.get_bearer_token(self.mainApp.client_id_entry.text(), self.mainApp.secret_entry.text())
         if response:
             print(response)
-            return
+        else:   
 
-        #print(invoices.bearer)
-        print('recorriendo recipients')
-        self.mainApp.label_information.setText("recorriendo recipients")
+            #print(invoices.bearer)
+            print('recorriendo recipients')
+            self.mainApp.label_information.setText("recorriendo recipients")
 
-        total_recipients = self.mainApp.listbox.count()
+            total_recipients = self.mainApp.listbox.count()
 
-        for i in range(total_recipients):
-            print('')
-            list_item = self.mainApp.listbox.item(i)
-            list_item.setForeground(QColor('#fff'))
-            list_item.setBackground(QColor(colores['azul']))
-            fail_response = None
-            try:
-                
-                recipient = list_item.text()
-                name_recipient = (self.mainApp.listbox_names.item(i).text().split(',') 
-                    if self.mainApp.listbox_names.count() > 0 else [])
-
-                address_recipient = (self.mainApp.listbox_address.item(i).text().split(',') 
-                    if self.mainApp.listbox_address.count() > 0 else [])
-
-                cc = (self.mainApp.listbox_cc.item(i).text().strip().split(',')
-                    if self.mainApp.listbox_cc.count() > 0 else [])
-
-                #list_item.setData(1,'azul')
-
-                print('usando recipiente: ', recipient)
-                self.mainApp.label_information.setText('Using recipient: '+ recipient)
-                note = self.mainApp.note_entry.text()
-                terms = self.mainApp.terms_text.toPlainText()
-                invoicer = self.mainApp.email_entry.text() if self.mainApp.email_entry.text() != '' else None
-                #cc = self.mainApp.cc_text.toPlainText().strip().split(',') if self.mainApp.cc_text.toPlainText() else []
-
-                print(f'recorriendo items ({self.mainApp.table.rowCount()})')
-                items = []
-                for row in range(self.mainApp.table.rowCount()):
-                    newItem = {
-                            'name':self.mainApp.table.cellWidget(row, 0).text(),
-                            'description':self.mainApp.table.cellWidget(row, 1).text(),
-                            'qty':self.mainApp.table.cellWidget(row, 2).text(),
-                            'value':self.mainApp.table.cellWidget(row, 3).text()
-                    }
-                    items.append(newItem)
+            for i in range(total_recipients):
+                print('')
+                list_item = self.mainApp.listbox.item(i)
+                list_item.setForeground(QColor('#fff'))
+                list_item.setBackground(QColor(colores['azul']))
+                fail_response = None
+                try:
                     
-                    #print('nuevo item agregado \n',newItem)
+                    recipient = list_item.text()
+                    name_recipient = (self.mainApp.listbox_names.item(i).text().split(',') 
+                        if self.mainApp.listbox_names.count() > 0 else [])
 
-                website = self.mainApp.website_entry.text()
-                tax_id = self.mainApp.tax_id_entry.text()
-                currency = self.mainApp.currency_cbox.currentText()
-                phone = self.mainApp.phone_entry.text()
-                business_name = self.mainApp.business_name_entry.text()
+                    address_recipient = (self.mainApp.listbox_address.item(i).text().split(',') 
+                        if self.mainApp.listbox_address.count() > 0 else [])
 
-                # (self, recipient, items, note='', terms='', invoicer=None, cc=[], website='',
-                    #tax_id='', phones='', name_recipient=[], address_recipient=None ):
-                print('formateando data')
-                self.mainApp.label_information.setText("Formatting Data")    
-                json_data = invoices.format_json_data(recipient=recipient, items=items,
-                     note=note, terms=terms, invoicer=invoicer, cc=cc, website=website,
-                    tax_id=tax_id, phone=phone, name_recipient=name_recipient, 
-                    address_recipient=address_recipient, currency=currency, business_name=business_name)
-                #print(json_data)
+                    cc = (self.mainApp.listbox_cc.item(i).text().strip().split(',')
+                        if self.mainApp.listbox_cc.count() > 0 else [])
 
-                print('creando draft')
-                self.mainApp.label_information.setText("Making draft")
-                draft_response = invoices.create_draft_invoice(json_data)
-                id_invoice = invoices.get_id_from_url(draft_response['href'])
+                    #list_item.setData(1,'azul')
 
-                print('enviando invoice')
-                self.mainApp.label_information.setText(f"Sending invoice {i+1}/{total_recipients}")
-                response = invoices.send_invoice(id_invoice)
-                fail_response = response
+                    print('usando recipiente: ', recipient)
+                    self.mainApp.label_information.setText('Using recipient: '+ recipient)
+                    note = self.mainApp.note_entry.text()
+                    terms = self.mainApp.terms_text.toPlainText()
+                    invoicer = self.mainApp.email_entry.text() if self.mainApp.email_entry.text() != '' else None
+                    #cc = self.mainApp.cc_text.toPlainText().strip().split(',') if self.mainApp.cc_text.toPlainText() else []
 
-                print(response['href'])
-                list_item.setBackground(QColor(colores['verde']))
-                #list_item.setData(1,'verde')
+                    print(f'recorriendo items ({self.mainApp.table.rowCount()})')
+                    items = []
+                    for row in range(self.mainApp.table.rowCount()):
+                        newItem = {
+                                'name':self.mainApp.table.cellWidget(row, 0).text(),
+                                'description':self.mainApp.table.cellWidget(row, 1).text(),
+                                'qty':self.mainApp.table.cellWidget(row, 2).text(),
+                                'value':self.mainApp.table.cellWidget(row, 3).text()
+                        }
+                        items.append(newItem)
+                        
+                        #print('nuevo item agregado \n',newItem)
 
-            except Exception as e:
-                print('falla al enviar invoice al recipiente')
-                self.mainApp.label_information.setText("Error sending invoice")
-                #list_item.setData(1,'rojo')
-                print(fail_response)
-                list_item.setBackground(QColor(colores['rojo']))
-                print(e)
+                    website = self.mainApp.website_entry.text()
+                    tax_id = self.mainApp.tax_id_entry.text()
+                    currency = self.mainApp.currency_cbox.currentText()
+                    phone = self.mainApp.phone_entry.text()
+                    business_name = self.mainApp.business_name_entry.text()
+
+                    # (self, recipient, items, note='', terms='', invoicer=None, cc=[], website='',
+                        #tax_id='', phones='', name_recipient=[], address_recipient=None ):
+                    print('formateando data')
+                    self.mainApp.label_information.setText("Formatting Data")    
+                    json_data = invoices.format_json_data(recipient=recipient, items=items,
+                         note=note, terms=terms, invoicer=invoicer, cc=cc, website=website,
+                        tax_id=tax_id, phone=phone, name_recipient=name_recipient, 
+                        address_recipient=address_recipient, currency=currency, business_name=business_name)
+                    #print(json_data)
+
+                    print('creando draft')
+                    self.mainApp.label_information.setText("Making draft")
+                    draft_response = invoices.create_draft_invoice(json_data)
+                    id_invoice = invoices.get_id_from_url(draft_response['href'])
+
+                    print('enviando invoice')
+                    self.mainApp.label_information.setText(f"Sending invoice {i+1}/{total_recipients}")
+                    response = invoices.send_invoice(id_invoice)
+                    fail_response = response
+
+                    print(response['href'])
+                    list_item.setBackground(QColor(colores['verde']))
+                    #list_item.setData(1,'verde')
+
+                except Exception as e:
+                    print('falla al enviar invoice al recipiente')
+                    self.mainApp.label_information.setText("Error sending invoice")
+                    #list_item.setData(1,'rojo')
+                    list_item.setBackground(QColor(colores['rojo']))
+                    print(e)
 
         self.mainApp.label_information.setText("The script is finished")
         print('The script is finished')
@@ -225,6 +224,7 @@ class CheckUser(QtWidgets.QDialog):
         status = check_licence(self.username_entry.text())
         #self.enviar_status.emit(self.username_entry.text())
         #self.close()
+        #print(status)
         if status:
             self.accept()
         else:
@@ -233,7 +233,7 @@ class CheckUser(QtWidgets.QDialog):
 class App(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle('PayPal Auto API    v1.2.0')
+        self.setWindowTitle('PayPal Auto API    v1.2.1')
 
         self.left_frame = QtWidgets.QFrame()
         self.right_frame = QtWidgets.QFrame()
@@ -263,6 +263,7 @@ class App(QtWidgets.QWidget):
             estilos = f.read()
         self.setStyleSheet(estilos)
 
+        self.show()
 
     def create_left_widgets(self):
         #####  Invoicer group
@@ -301,12 +302,12 @@ class App(QtWidgets.QWidget):
         self.client_id_label = QtWidgets.QLabel("Client ID")
         self.client_id_entry = QtWidgets.QLineEdit()
         if testing:
-            self.client_id_entry.setText('AX9g1_5_SfTSQCdRgxXMDV7GSZL94_09hr_bcI4AexiqWTfJbT1yLrd9WbNvuEGh5vNzgDFL83sWwL0H')
+            self.client_id_entry.setText('')
 
         self.secret_label = QtWidgets.QLabel("Secret")
         self.secret_entry = QtWidgets.QLineEdit()
         if testing:
-            self.secret_entry.setText('EE0O607opl7RJ8pOn90cmn69LS4YZkwbZ3Xyl-MqhJE1DNEujkXKPXVHtb5dDwW1DyQO1ZeiuZpn7S0I')
+            self.secret_entry.setText('')
 
         #####  Body invoice
 
@@ -609,8 +610,8 @@ if __name__ == '__main__':
         app = QtWidgets.QApplication(sys.argv)
         print('instanciando app')
         window = App()
-        print('mostrando app')
-        window.show()
+        #print('mostrando app')
+        #window.show()
         
     except Exception as e:
         with open('error.log', 'a') as f:
